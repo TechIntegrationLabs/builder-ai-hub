@@ -74,75 +74,83 @@ export const EntitlementTracker = () => {
         }),
       });
 
-      if (!response.ok) {
-        if (response.status === 500) {
-          throw new Error("The Make.com scenario encountered an error. Please check your scenario for errors.");
-        }
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const contentType = response.headers.get("content-type");
-      const responseText = await response.text();
-      console.log("Response text:", responseText);
-      console.log("Response content-type:", contentType);
-
-      // Check if response is "Accepted" - this means no Webhook Response module is configured
-      if (responseText === "Accepted") {
-        throw new Error("Make.com webhook returned 'Accepted'. Please add a Webhook Response module to your scenario to return the generated prompt as JSON.");
-      }
-
-      // Check if response is plain text (starts with === FINAL AGENT PROMPT)
-      if (responseText.includes("=== FINAL AGENT PROMPT START ===")) {
-        // Extract the prompt content between the markers
-        const startMarker = "=== FINAL AGENT PROMPT START ===";
-        const endMarker = "=== FINAL AGENT PROMPT END ===";
-        const startIndex = responseText.indexOf(startMarker) + startMarker.length;
-        const endIndex = responseText.indexOf(endMarker);
-        
-        if (endIndex > startIndex) {
-          const promptContent = responseText.substring(startIndex, endIndex).trim();
-          setGeneratedPrompt(promptContent);
-          toast({
-            title: "Prompt Generated",
-            description: "Your ChatGPT agent prompt is ready to copy.",
-          });
-        } else {
-          throw new Error("Could not extract prompt content from response");
-        }
-      } else {
-        // Try to parse as JSON
-        let data;
-        try {
-          data = JSON.parse(responseText);
-          console.log("Parsed response data:", data);
-        } catch (parseError) {
-          console.error("Failed to parse response as JSON:", parseError);
-          throw new Error(`Invalid response format. Expected JSON but received: ${responseText.substring(0, 100)}...`);
-        }
-        
-        if (data.final_agent_prompt) {
-          setGeneratedPrompt(data.final_agent_prompt);
-          toast({
-            title: "Prompt Generated",
-            description: "Your ChatGPT agent prompt is ready to copy.",
-          });
-        } else {
-          console.error("Response missing final_agent_prompt:", data);
-          throw new Error("No prompt returned from the service");
-        }
-      }
+      await processResponse(response);
     } catch (err) {
-      console.error("Error generating prompt:", err);
-      const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
-      setError(`Failed to generate prompt: ${errorMessage}`);
-      toast({
-        title: "Error",
-        description: `Failed to generate prompt: ${errorMessage}`,
-        variant: "destructive",
-      });
+      handleError(err);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const processResponse = async (response: Response) => {
+    if (!response.ok) {
+      if (response.status === 500) {
+        throw new Error("The Make.com scenario encountered an error. Please check your scenario for errors.");
+      }
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    const contentType = response.headers.get("content-type");
+    const responseText = await response.text();
+    console.log("Response text:", responseText);
+    console.log("Response content-type:", contentType);
+
+    // Check if response is "Accepted" - this means no Webhook Response module is configured
+    if (responseText === "Accepted") {
+      throw new Error("Make.com webhook returned 'Accepted'. Please add a Webhook Response module to your scenario to return the generated prompt as JSON.");
+    }
+
+    // Check if response is plain text (starts with === FINAL AGENT PROMPT)
+    if (responseText.includes("=== FINAL AGENT PROMPT START ===")) {
+      // Extract the prompt content between the markers
+      const startMarker = "=== FINAL AGENT PROMPT START ===";
+      const endMarker = "=== FINAL AGENT PROMPT END ===";
+      const startIndex = responseText.indexOf(startMarker) + startMarker.length;
+      const endIndex = responseText.indexOf(endMarker);
+      
+      if (endIndex > startIndex) {
+        const promptContent = responseText.substring(startIndex, endIndex).trim();
+        setGeneratedPrompt(promptContent);
+        toast({
+          title: "Prompt Generated",
+          description: "Your ChatGPT agent prompt is ready to copy.",
+        });
+      } else {
+        throw new Error("Could not extract prompt content from response");
+      }
+    } else {
+      // Try to parse as JSON
+      let data;
+      try {
+        data = JSON.parse(responseText);
+        console.log("Parsed response data:", data);
+      } catch (parseError) {
+        console.error("Failed to parse response as JSON:", parseError);
+        throw new Error(`Invalid response format. Expected JSON but received: ${responseText.substring(0, 100)}...`);
+      }
+      
+      if (data.final_agent_prompt) {
+        setGeneratedPrompt(data.final_agent_prompt);
+        toast({
+          title: "Prompt Generated",
+          description: "Your ChatGPT agent prompt is ready to copy.",
+        });
+      } else {
+        console.error("Response missing final_agent_prompt:", data);
+        throw new Error("No prompt returned from the service");
+      }
+    }
+  };
+
+  const handleError = (err: any) => {
+    console.error("Error generating prompt:", err);
+    const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
+    setError(`Failed to generate prompt: ${errorMessage}`);
+    toast({
+      title: "Error",
+      description: `Failed to generate prompt: ${errorMessage}`,
+      variant: "destructive",
+    });
   };
 
   const copyToClipboard = async () => {
@@ -215,7 +223,7 @@ export const EntitlementTracker = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-4">
+              <form onSubmit={handleCustomSubmit} className="space-y-4">
                 <div>
                   <Textarea
                     placeholder="Enter your instruction here... (e.g., 'Analyze entitlements in Hoboken and Teaneck')"

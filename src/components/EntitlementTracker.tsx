@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Copy, Send, CheckCircle, AlertCircle, Loader2 } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { ArrowLeft, Copy, Send, CheckCircle, AlertCircle, Loader2, PlayCircle, Wand2, ExternalLink, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 export const EntitlementTracker = () => {
@@ -12,9 +13,49 @@ export const EntitlementTracker = () => {
   const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [showCustomInput, setShowCustomInput] = useState(false);
   const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  useEffect(() => {
+    // Check if user has seen onboarding before
+    const hasSeenOnboarding = localStorage.getItem("entitlementTrackerOnboarding");
+    if (hasSeenOnboarding === "true") {
+      setShowOnboarding(false);
+    }
+  }, []);
+
+  const dismissOnboarding = () => {
+    setShowOnboarding(false);
+    localStorage.setItem("entitlementTrackerOnboarding", "true");
+  };
+
+  const handleRunDefault = async () => {
+    setIsLoading(true);
+    setError("");
+    setGeneratedPrompt("");
+    setShowCustomInput(false);
+
+    try {
+      const response = await fetch("https://hook.us2.make.com/64kn0tphmvof4dgv8bj8zwzstvvzpp3x", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          user_message: "run it",
+        }),
+      });
+
+      await processResponse(response);
+    } catch (err) {
+      handleError(err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCustomSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!userMessage.trim()) return;
 
@@ -23,7 +64,7 @@ export const EntitlementTracker = () => {
     setGeneratedPrompt("");
 
     try {
-      const response = await fetch("https://willdisrupt.app.n8n.cloud/webhook-test/eccc3f81-4743-453b-bc2e-69139edae517", {
+      const response = await fetch("https://hook.us2.make.com/64kn0tphmvof4dgv8bj8zwzstvvzpp3x", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -34,25 +75,69 @@ export const EntitlementTracker = () => {
       });
 
       if (!response.ok) {
+        if (response.status === 500) {
+          throw new Error("The Make.com scenario encountered an error. Please check your scenario for errors.");
+        }
         throw new Error(`HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      
-      if (data.final_agent_prompt) {
-        setGeneratedPrompt(data.final_agent_prompt);
-        toast({
-          title: "Prompt Generated",
-          description: "Your ChatGPT agent prompt is ready to copy.",
-        });
+      const contentType = response.headers.get("content-type");
+      const responseText = await response.text();
+      console.log("Response text:", responseText);
+      console.log("Response content-type:", contentType);
+
+      // Check if response is "Accepted" - this means no Webhook Response module is configured
+      if (responseText === "Accepted") {
+        throw new Error("Make.com webhook returned 'Accepted'. Please add a Webhook Response module to your scenario to return the generated prompt as JSON.");
+      }
+
+      // Check if response is plain text (starts with === FINAL AGENT PROMPT)
+      if (responseText.includes("=== FINAL AGENT PROMPT START ===")) {
+        // Extract the prompt content between the markers
+        const startMarker = "=== FINAL AGENT PROMPT START ===";
+        const endMarker = "=== FINAL AGENT PROMPT END ===";
+        const startIndex = responseText.indexOf(startMarker) + startMarker.length;
+        const endIndex = responseText.indexOf(endMarker);
+        
+        if (endIndex > startIndex) {
+          const promptContent = responseText.substring(startIndex, endIndex).trim();
+          setGeneratedPrompt(promptContent);
+          toast({
+            title: "Prompt Generated",
+            description: "Your ChatGPT agent prompt is ready to copy.",
+          });
+        } else {
+          throw new Error("Could not extract prompt content from response");
+        }
       } else {
-        throw new Error("No prompt returned from the service");
+        // Try to parse as JSON
+        let data;
+        try {
+          data = JSON.parse(responseText);
+          console.log("Parsed response data:", data);
+        } catch (parseError) {
+          console.error("Failed to parse response as JSON:", parseError);
+          throw new Error(`Invalid response format. Expected JSON but received: ${responseText.substring(0, 100)}...`);
+        }
+        
+        if (data.final_agent_prompt) {
+          setGeneratedPrompt(data.final_agent_prompt);
+          toast({
+            title: "Prompt Generated",
+            description: "Your ChatGPT agent prompt is ready to copy.",
+          });
+        } else {
+          console.error("Response missing final_agent_prompt:", data);
+          throw new Error("No prompt returned from the service");
+        }
       }
     } catch (err) {
-      setError("Something went wrong. Please try again.");
+      console.error("Error generating prompt:", err);
+      const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
+      setError(`Failed to generate prompt: ${errorMessage}`);
       toast({
         title: "Error",
-        description: "Failed to generate prompt. Please try again.",
+        description: `Failed to generate prompt: ${errorMessage}`,
         variant: "destructive",
       });
     } finally {

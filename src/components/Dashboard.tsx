@@ -51,18 +51,11 @@ export const Dashboard = () => {
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card shadow-sm">
         <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold text-primary">CBG AI Tools Portal</h1>
-              <p className="mt-1 text-muted-foreground">
-                Cornerstone Builders Group • Professional AI Solutions
-              </p>
-            </div>
-            <div className="flex items-center space-x-2 text-sm text-muted-foreground">
-              <span>Founded 2014</span>
-              <span>•</span>
-              <span>Quality • Relationships • Results</span>
-            </div>
+          <div>
+            <h1 className="text-3xl font-bold text-primary">Cornerstone AI Tools</h1>
+            <p className="mt-1 text-muted-foreground">
+              by Disruptors
+            </p>
           </div>
         </div>
       </header>

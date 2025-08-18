@@ -1,22 +1,14 @@
-# Welcome to your Lovable project
+# Cornerstone AI Tools Portal
 
-## Project info
+## Project Overview
 
-**URL**: https://lovable.dev/projects/ab49b58e-900b-45d0-a6ca-7fb0c5bcd67d
+AI-powered tools for construction project management and client engagement by Disruptors.
 
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/ab49b58e-900b-45d0-a6ca-7fb0c5bcd67d) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
+## Getting Started
 
 **Use your preferred IDE**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+You can clone this repo and work locally using your preferred development environment.
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
@@ -60,14 +52,13 @@ This project is built with:
 - shadcn-ui
 - Tailwind CSS
 
-## How can I deploy this project?
+## Deployment
 
-Simply open [Lovable](https://lovable.dev/projects/ab49b58e-900b-45d0-a6ca-7fb0c5bcd67d) and click on Share -> Publish.
+This project can be deployed to any hosting service that supports static React applications (Vercel, Netlify, AWS, etc.).
 
-## Can I connect a custom domain to my Lovable project?
+Build the project for production:
+```sh
+npm run build
+```
 
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+The built files will be in the `dist` directory.

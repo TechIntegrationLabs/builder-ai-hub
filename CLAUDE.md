@@ -73,7 +73,5 @@ npm run preview
 
 ### Development Notes
 
-- The project is configured with Lovable.dev integration for rapid development
 - ESLint is configured but with relaxed rules for unused variables
 - The development server binds to all interfaces (`host: "::"`) for network accessibility
-- Component tagging is enabled in development mode for Lovable.dev integration
